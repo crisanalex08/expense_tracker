@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/snackbar_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,14 +15,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final auth = AuthService();
 
+  void showMessage(String message, {required bool success}) {
+    SnackbarService.showMessage(context, message, success: success);
+  }
+
   void register() async {
     try {
       await auth.register(emailCtrl.text, passCtrl.text);
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Registration failed")),
-      );
+      showMessage("Registration failed", success: false);
     }
   }
 
@@ -31,9 +34,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // On success, authStateChanges will navigate away; close this screen if mounted.
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Google sign-in failed")),
-      );
+      showMessage("Google sign-in failed", success: false);
     }
   }
 

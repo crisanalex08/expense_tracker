@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart';
-import '../services/image_service.dart';
+// OCR and image picking removed
 
 import '../models/expense.dart';
 import '../services/firestore_service.dart';
-import '../services/receipt_service.dart';
-import 'receipt_review_screen.dart';
+// receipt review screen removed
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -21,9 +19,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   String category = "Food";
   final firestore = FirestoreService();
-  String? imagePath;
-  final imageService = ImageService();
-  final receiptService = ReceiptService();
+  // OCR/image scanning removed; no image fields or services
 
   @override
   void dispose() {
@@ -41,7 +37,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       note: noteCtrl.text,
       date: DateTime.now(),
       merchant: null,
-      imagePath: imagePath,
+      imagePath: null,
     );
 
     await firestore.addExpense(user.uid, expense);
@@ -87,18 +83,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _scanReceipt,
-              child: const Text("Scan Receipt"),
-            ),
-            if (imagePath != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                "Receipt attached",
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-            const SizedBox(height: 12),
-            ElevatedButton(
               onPressed: saveExpense,
               child: const Text("Save"),
             ),
@@ -106,73 +90,5 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _scanReceipt() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.photo_camera),
-                title: const Text('Take photo'),
-                onTap: () => Navigator.pop(context, ImageSource.camera),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Choose from gallery'),
-                onTap: () => Navigator.pop(context, ImageSource.gallery),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (source == null) {
-      return;
-    }
-
-    final path = await imageService.pickAndSaveImage(source: source);
-    if (path == null) {
-      return;
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() => imagePath = path);
-
-    final extraction = await receiptService.extractReceiptDetails(path);
-    if (!mounted) {
-      return;
-    }
-
-    final draftExpense = await Navigator.push<Expense>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ReceiptReviewScreen(
-          extraction: extraction,
-          initialCategory: category,
-          initialNote: noteCtrl.text,
-        ),
-      ),
-    );
-
-    if (draftExpense == null || !mounted) {
-      return;
-    }
-
-    await firestore.addExpense(FirebaseAuth.instance.currentUser!.uid, draftExpense);
-
-    if (!mounted) {
-      return;
-    }
-
-    Navigator.pop(context);
   }
 }
