@@ -19,8 +19,10 @@ class _LoginScreenState extends State<LoginScreen> {
   void login() async {
       try {
         await auth.login(emailCtrl.text, passCtrl.text);
+        if (!mounted) return;
         SnackbarService.showMessage(context, "Login successful", success: true);
       } catch (e) {
+        if (!mounted) return;
         SnackbarService.showMessage(context, "Login failed", success: false);
       }
   }
@@ -28,8 +30,14 @@ class _LoginScreenState extends State<LoginScreen> {
     void signInWithGoogle() async {
     try {
       await auth.signInWithGoogle();
+      if (!mounted) return;
     } catch (e) {
-      SnackbarService.showMessage(context, "Google sign-in failed", success: false);
+      if (!mounted) return;
+        SnackbarService.showMessage(
+          context,
+          e.toString().replaceFirst('Bad state: ', ''),
+          success: false,
+        );
     }
   }
 
@@ -43,6 +51,12 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Image.asset(
+              'assets/logo/app_logo.png',
+              width: 110,
+              height: 110,
+            ),
+            const SizedBox(height: 20),
             const Text("Login", style: TextStyle(fontSize: 28)),
 
             TextField(

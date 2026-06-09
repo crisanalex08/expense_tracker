@@ -1,8 +1,24 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/services.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  GoogleSignIn _googleSignIn() {
+    return GoogleSignIn(
+      scopes: const ['email'],
+    );
+  }
+
+  Never _throwGoogleSignInConfigError(Object error) {
+    throw StateError(
+      'Google Sign-In is not configured for this Android app. '
+      'Check that Firebase Authentication has Google enabled, '
+      'the Android app SHA-1 is registered, and the app has a '
+      'valid web client ID in google-services.json.',
+    );
+  }
 
   Future<User?> register(String email, String password) async {
     final result = await _auth.createUserWithEmailAndPassword(
@@ -28,7 +44,16 @@ class AuthService {
 
   /// Sign in with Google and return the Firebase [UserCredential].
   Future<UserCredential?> signInWithGoogle() async {
-    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+    final GoogleSignInAccount? googleUser;
+    try {
+      googleUser = await _googleSignIn().signIn();
+    } on PlatformException catch (error) {
+      if (error.code == 'channel-error') {
+        _throwGoogleSignInConfigError(error);
+      }
+      rethrow;
+    }
+
     if (googleUser == null) return null; // user aborted
 
     final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -46,7 +71,16 @@ class AuthService {
     final currentUser = _auth.currentUser;
     if (currentUser == null) throw FirebaseAuthException(code: 'no-current-user', message: 'No signed-in user to link.');
 
-    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+    final GoogleSignInAccount? googleUser;
+    try {
+      googleUser = await _googleSignIn().signIn();
+    } on PlatformException catch (error) {
+      if (error.code == 'channel-error') {
+        _throwGoogleSignInConfigError(error);
+      }
+      rethrow;
+    }
+
     if (googleUser == null) return null; // user aborted
 
     final GoogleSignInAuthentication googleAuth = await googleUser.authentication;

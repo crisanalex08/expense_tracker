@@ -1,10 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// OCR and image picking removed
+import 'package:image_picker/image_picker.dart';
 
 import '../models/expense.dart';
 import '../services/firestore_service.dart';
-// receipt review screen removed
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -19,7 +20,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   String category = "Food";
   final firestore = FirestoreService();
-  // OCR/image scanning removed; no image fields or services
+  XFile? _pickedReceipt;
 
   @override
   void dispose() {
@@ -29,24 +30,74 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   Future<void> saveExpense() async {
+    // Null / invalid-amount guard
+    final amount = double.tryParse(amountCtrl.text.trim());
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a valid amount")),
+      );
+      return;
+    }
+
     final user = FirebaseAuth.instance.currentUser!;
+
     final expense = Expense(
       id: "",
-      amount: double.tryParse(amountCtrl.text) ?? 0,
+      amount: amount,
       category: category,
       note: noteCtrl.text,
       date: DateTime.now(),
       merchant: null,
-      imagePath: null,
+      imagePath: _pickedReceipt?.path,
     );
 
     await firestore.addExpense(user.uid, expense);
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     Navigator.pop(context);
+  }
+
+  Future<void> _pickReceipt(ImageSource source) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: source,
+      imageQuality: 85,
+    );
+
+    if (!mounted || image == null) return;
+
+    setState(() => _pickedReceipt = image);
+  }
+
+  void _showPickerDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_pickedReceipt == null ? "Add Receipt" : "Replace Receipt"),
+        content: Text(
+          _pickedReceipt == null
+              ? "Choose how to add your receipt"
+              : "This will replace your current receipt.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _pickReceipt(ImageSource.camera);
+            },
+            child: const Text("Take Photo"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _pickReceipt(ImageSource.gallery);
+            },
+            child: const Text("Pick from Gallery"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -64,16 +115,50 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               decoration: const InputDecoration(labelText: "Amount"),
             ),
 
-            DropdownButton<String>(
-              value: category,
-              items: const [
-                DropdownMenuItem(value: "Food", child: Text("Food")),
-                DropdownMenuItem(value: "Transport", child: Text("Transport")),
-                DropdownMenuItem(value: "Bills", child: Text("Bills")),
-              ],
-              onChanged: (value) {
-                setState(() => category = value!);
-              },
+            // Full-width dropdown via isExpanded + InputDecorator
+            InputDecorator(
+              decoration: const InputDecoration(labelText: "Category"),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: category,
+                  isExpanded: true,
+                  items: const [
+                    DropdownMenuItem(
+                      value: "Food",
+                      child: Row(
+                        children: [
+                          Icon(Icons.fastfood, size: 20),
+                          SizedBox(width: 8),
+                          Text("Food"),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: "Transport",
+                      child: Row(
+                        children: [
+                          Icon(Icons.directions_bus, size: 20),
+                          SizedBox(width: 8),
+                          Text("Transport"),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: "Bills",
+                      child: Row(
+                        children: [
+                          Icon(Icons.account_balance, size: 20),
+                          SizedBox(width: 8),
+                          Text("Bills"),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() => category = value!);
+                  },
+                ),
+              ),
             ),
 
             TextField(
@@ -82,10 +167,64 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             ),
 
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: saveExpense,
-              child: const Text("Save"),
-            ),
+
+            // Receipt preview — only shown once a receipt has been picked
+            if (_pickedReceipt != null) ...[
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      File(_pickedReceipt!.path),
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  // "Replace" badge in the top-right corner
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: _showPickerDialog,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.swap_horiz, color: Colors.white, size: 16),
+                            SizedBox(width: 4),
+                            Text(
+                              "Replace",
+                              style: TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Show "Add Receipt" button only when no receipt has been picked yet
+            if (_pickedReceipt == null)
+              ElevatedButton.icon(
+                onPressed: _showPickerDialog,
+                icon: const Icon(Icons.receipt_long),
+                label: const Text("Add Receipt"),
+              ),
+
+            const SizedBox(height: 20),
+            ElevatedButton(onPressed: saveExpense, child: const Text("Save")),
           ],
         ),
       ),

@@ -3,16 +3,15 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../models/expense.dart';
-import '../services/receipt_service.dart';
 
 class ReceiptReviewScreen extends StatefulWidget {
-  final ReceiptExtractionResult extraction;
+  final String imagePath;
   final String initialCategory;
   final String initialNote;
 
   const ReceiptReviewScreen({
     super.key,
-    required this.extraction,
+    required this.imagePath,
     required this.initialCategory,
     required this.initialNote,
   });
@@ -38,14 +37,11 @@ class _ReceiptReviewScreenState extends State<ReceiptReviewScreen> {
   @override
   void initState() {
     super.initState();
-    amountCtrl = TextEditingController(
-      text: widget.extraction.amount?.toStringAsFixed(2) ?? '',
-    );
-    merchantCtrl = TextEditingController(text: widget.extraction.merchant ?? '');
+    amountCtrl = TextEditingController();
+    merchantCtrl = TextEditingController();
     noteCtrl = TextEditingController(text: widget.initialNote);
     dateCtrl = TextEditingController(
-      text: widget.extraction.date?.toIso8601String().split('T').first ??
-          DateTime.now().toIso8601String().split('T').first,
+      text: DateTime.now().toIso8601String().split('T').first,
     );
     category = categories.contains(widget.initialCategory)
         ? widget.initialCategory
@@ -74,7 +70,7 @@ class _ReceiptReviewScreenState extends State<ReceiptReviewScreen> {
         note: noteCtrl.text,
         date: parsedDate,
         merchant: merchantCtrl.text.trim().isEmpty ? null : merchantCtrl.text.trim(),
-        imagePath: widget.extraction.imagePath,
+        imagePath: widget.imagePath.isEmpty ? null : widget.imagePath,
       ),
     );
   }
@@ -89,11 +85,11 @@ class _ReceiptReviewScreenState extends State<ReceiptReviewScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (widget.extraction.imagePath.isNotEmpty)
+              if (widget.imagePath.isNotEmpty)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.file(
-                    File(widget.extraction.imagePath),
+                    File(widget.imagePath),
                     height: 180,
                     fit: BoxFit.cover,
                   ),
@@ -143,13 +139,6 @@ class _ReceiptReviewScreenState extends State<ReceiptReviewScreen> {
               ElevatedButton(
                 onPressed: _save,
                 child: const Text('Save Expense'),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                widget.extraction.rawText.isEmpty
-                    ? 'No receipt text recognized.'
-                    : 'Recognized text is available for review if the fields need adjustment.',
-                style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
           ),

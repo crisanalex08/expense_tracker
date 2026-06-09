@@ -22,8 +22,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void register() async {
     try {
       await auth.register(emailCtrl.text, passCtrl.text);
+      if (!mounted) return;
       Navigator.pop(context);
     } catch (e) {
+      if (!mounted) return;
       showMessage("Registration failed", success: false);
     }
   }
@@ -34,7 +36,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // On success, authStateChanges will navigate away; close this screen if mounted.
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      showMessage("Google sign-in failed", success: false);
+      if (!mounted) return;
+      showMessage(
+        e.toString().replaceFirst('Bad state: ', ''),
+        success: false,
+      );
     }
   }
 
@@ -46,6 +52,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Image.asset(
+              'assets/logo/app_logo.png',
+              width: 110,
+              height: 110,
+            ),
+            const SizedBox(height: 20),
             const Text("Register", style: TextStyle(fontSize: 28)),
 
             TextField(
