@@ -10,8 +10,15 @@ import 'add_expense_screen.dart';
 import 'dashboard_screen.dart';
 import 'scan_receipt_screen.dart'; // create this screen for the scan flow
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _fabExpanded = false;
 
   IconData _categoryIcon(String category) {
     switch (category) {
@@ -53,74 +60,13 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  void _showAddOptions(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Drag handle
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-                    foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
-                    child: const Icon(Icons.document_scanner_outlined),
-                  ),
-                  title: const Text('Scan a Receipt'),
-                  subtitle: const Text('Capture and auto-fill from a photo'),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                    child: const Icon(Icons.edit_outlined),
-                  ),
-                  title: const Text('Add Manually'),
-                  subtitle: const Text('Enter expense details by hand'),
-                  onTap: () {
-                    Navigator.pop(sheetContext);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser!;
     final firestore = FirestoreService();
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -180,7 +126,7 @@ class HomeScreen extends StatelessWidget {
                 title: Text("${e.amount}€ - ${e.category}"),
                 subtitle: Text(
                   [
-                    if (e.merchant != null && e.merchant!.isNotEmpty) e.merchant!,
+                    // if (e.merchant != null && e.merchant!.isNotEmpty) e.merchant!,
                     if (e.note.isNotEmpty) e.note,
                   ].join(" • "),
                 ),
@@ -195,9 +141,123 @@ class HomeScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddOptions(context),
-        child: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Mini options — visible only when expanded
+          AnimatedSlide(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            offset: _fabExpanded ? Offset.zero : const Offset(0, 0.3),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 180),
+              opacity: _fabExpanded ? 1 : 0,
+              child: IgnorePointer(
+                ignoring: !_fabExpanded,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _FabOption(
+                      icon: Icons.document_scanner_outlined,
+                      label: 'Scan Receipt',
+                      color: cs.secondaryContainer,
+                      onColor: cs.onSecondaryContainer,
+                      onTap: () {
+                        setState(() => _fabExpanded = false);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ScanReceiptScreen()),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _FabOption(
+                      icon: Icons.edit_outlined,
+                      label: 'Add Manually',
+                      color: cs.primaryContainer,
+                      onColor: cs.onPrimaryContainer,
+                      onTap: () {
+                        setState(() => _fabExpanded = false);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Main FAB
+          FloatingActionButton(
+            onPressed: () => setState(() => _fabExpanded = !_fabExpanded),
+            child: AnimatedRotation(
+              turns: _fabExpanded ? 0.125 : 0, // rotates to an ✕ shape
+              duration: const Duration(milliseconds: 200),
+              child: const Icon(Icons.add),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FabOption extends StatelessWidget {
+  const _FabOption({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color onColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Label chip
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Mini FAB
+          FloatingActionButton.small(
+            heroTag: label,
+            backgroundColor: color,
+            foregroundColor: onColor,
+            elevation: 2,
+            onPressed: onTap,
+            child: Icon(icon),
+          ),
+        ],
       ),
     );
   }

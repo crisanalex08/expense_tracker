@@ -18,7 +18,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final amountCtrl = TextEditingController();
   final noteCtrl = TextEditingController();
 
-  String category = "Food";
+  String category = "Misc";
   final firestore = FirestoreService();
   XFile? _pickedReceipt;
 
@@ -127,7 +127,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       value: "Food",
                       child: Row(
                         children: [
-                          Icon(Icons.fastfood, size: 20),
+                          Icon(Icons.restaurant_rounded, size: 20),
                           SizedBox(width: 8),
                           Text("Food"),
                         ],
@@ -137,7 +137,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       value: "Transport",
                       child: Row(
                         children: [
-                          Icon(Icons.directions_bus, size: 20),
+                          Icon(Icons.directions_car_rounded, size: 20),
                           SizedBox(width: 8),
                           Text("Transport"),
                         ],
@@ -147,9 +147,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       value: "Bills",
                       child: Row(
                         children: [
-                          Icon(Icons.account_balance, size: 20),
+                          Icon(Icons.receipt_long_rounded, size: 20),
                           SizedBox(width: 8),
                           Text("Bills"),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: "Misc",
+                      child: Row(
+                        children: [
+                          Icon(Icons.category, size: 20),
+                          SizedBox(width: 8),
+                          Text("Misc"),
                         ],
                       ),
                     ),
