@@ -1,5 +1,5 @@
 # SpentLog – Project Specification
-### How many times it happend that at the end of sallary you had half of month left?
+### How many times it happend that at the end of salary you had half of month left?
 ## 1. Overview
 
 
