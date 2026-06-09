@@ -324,11 +324,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              'assets/logo/app_logo.png',
-              width: 28,
-              height: 28,
-            ),
+            // Image.asset(
+            //   'assets/logo/app_logo.png',
+            //   width: 28,
+            //   height: 28,
+            // ),
             const SizedBox(width: 10),
             const Text('Dashboard'),
           ],
